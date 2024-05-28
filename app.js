@@ -33,11 +33,11 @@ app.post('/register', async (request, response) => {
   const selectUserQuery = `SELECT * FROM user WHERE username='${username}'`
   const dbUser = await db.get(selectUserQuery)
   if (dbUser !== undefined) {
-    response.status = 400
+    response.status(400)
     response.send('User already exists')
   } else {
     if (password.length < 5) {
-      response.status = 400
+      response.status(400)
       response.send('Password is too short')
     } else {
       const createUserQuery = `
@@ -52,7 +52,7 @@ app.post('/register', async (request, response) => {
           '${location}'
         )`
       const dbResponse = await db.run(createUserQuery)
-      response.status = 200
+      response.status(200)
       response.send('User created successfully')
     }
   }
@@ -79,26 +79,30 @@ app.post('/login', async (request, response) => {
 app.put('/change-password', async (request, response) => {
   const {username, oldPassword, newPassword} = request.body
   const selectUserQuery = `SELECT * FROM user WHERE username = '${username}'`
-  const hashedNewPassword = await bcrypt.hash(request.body.password, 10)
   const dbUser = await db.get(selectUserQuery)
   if (dbUser !== undefined) {
     const isPasswordMatched = await bcrypt.compare(oldPassword, dbUser.password)
     if (isPasswordMatched === false) {
-      response.status = 400
+      response.status(400)
       response.send('Invalid current password')
     }
     if (newPassword.length < 5) {
-      response.status = 400
+      response.status(400)
       response.send('Password is too short')
     }
     if (isPasswordMatched === true) {
+      const hashedNewPassword = await bcrypt.hash(newPassword, 10)
       const updatePasswordQuery = `
       UPDATE user 
-      SET password = '${hashedNewPassword}'`
+      SET password = '${hashedNewPassword}'
+      WHERE username = '${username}'`
       await db.run(updatePasswordQuery)
-      response.status = 200
+      response.status(200)
       response.send('Password updated')
     }
+  } else {
+    response.status(400)
+    response.send('Invalid user')
   }
 })
 
